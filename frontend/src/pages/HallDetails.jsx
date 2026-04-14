@@ -39,8 +39,15 @@ const HallDetails = () => {
         console.error('Error fetching data, using mock data:', error);
         // Fallback to mock data
         const foundHall = mockHalls.find(h => h._id === id);
-        setHall(foundHall || mockHalls[0]);
-        setReviews(mockReviews);
+        if (!foundHall) {
+          const localHalls = JSON.parse(localStorage.getItem('mockAddedHalls') || '[]');
+          setHall(localHalls.find(h => h._id === id) || mockHalls[0]);
+        } else {
+          setHall(foundHall);
+        }
+        
+        const localReviews = JSON.parse(localStorage.getItem(`mockReviews_${id}`) || '[]');
+        setReviews([...localReviews, ...mockReviews]);
       } finally {
         setLoading(false);
       }
@@ -107,10 +114,23 @@ const HallDetails = () => {
       setComment('');
       setReviewMessage({ type: 'success', text: 'Review added successfully' });
     } catch (error) {
-      setReviewMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to add review.' 
-      });
+      console.warn("Backend failed, appending mock review");
+      
+      const newReview = {
+        _id: Date.now().toString(),
+        userId: { name: user.name || 'Current User' },
+        rating,
+        comment,
+        createdAt: new Date().toISOString()
+      };
+      
+      const localReviews = JSON.parse(localStorage.getItem(`mockReviews_${id}`) || '[]');
+      localReviews.unshift(newReview);
+      localStorage.setItem(`mockReviews_${id}`, JSON.stringify(localReviews));
+      
+      setReviews([newReview, ...reviews]);
+      setComment('');
+      setReviewMessage({ type: 'success', text: 'Review added successfully! (Mocked)' });
     }
   };
 

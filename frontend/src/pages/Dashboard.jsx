@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Calendar, CheckCircle, Clock, XCircle, Ban, Plus, Store, CalendarRange } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, XCircle, Ban, Plus, Store, CalendarRange, Star } from 'lucide-react';
 import { mockHalls } from '../utils/mockData';
 
 const Dashboard = () => {
@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [myBookings, setMyBookings] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
 
   // Form states for Add Hall
   const [newHall, setNewHall] = useState({ name: '', location: '', price: '', capacity: '', description: '' });
@@ -45,6 +46,25 @@ const Dashboard = () => {
       const ownedHallIds = ownedHalls.map(h => h._id);
       const incoming = globalBookings.filter(b => ownedHallIds.includes(b.hallId?._id));
       setIncomingRequests(incoming);
+
+      // 4. Fetch User Reviews
+      try {
+        const { data: reviews } = await api.get('/reviews/user');
+        setMyReviews(reviews);
+      } catch (err) {
+        // Mock fallback for user reviews: search through all mockReviews in localStorage
+        const allKeys = Object.keys(localStorage);
+        const userReviewList = [];
+        allKeys.forEach(key => {
+          if (key.startsWith('mockReviews_')) {
+            const reviews = JSON.parse(localStorage.getItem(key) || '[]');
+            // Filter by user.name since mock review uses user.name
+            const myRev = reviews.filter(r => r.userId?.name === user?.name || r.userId?._id === user?._id);
+            userReviewList.push(...myRev);
+          }
+        });
+        setMyReviews(userReviewList);
+      }
 
     } catch (error) {
       console.error(error);
@@ -142,6 +162,14 @@ const Dashboard = () => {
             title="My Venues"
           >
             <Store size={20} /> <span className="hidden md:inline font-medium">My Venues</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('my-reviews')}
+            className={`w-full flex items-center justify-center md:justify-start gap-3 px-2 md:px-4 py-4 md:py-3 rounded-xl transition ${activeTab === 'my-reviews' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            title="My Reviews"
+          >
+            <Star size={20} /> <span className="hidden md:inline font-medium">My Reviews</span>
           </button>
           
           <button 
@@ -349,6 +377,45 @@ const Dashboard = () => {
                 </form>
               </div>
             </div>
+          )}
+
+          {/* TAB: My Reviews */}
+          {activeTab === 'my-reviews' && (
+            <>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">My Reviews</h1>
+              <p className="text-slate-500 mb-8">Reviews you have written for venues.</p>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                {myReviews.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <Star className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                    <h3 className="text-lg font-medium text-slate-900">No reviews found</h3>
+                    <p className="mt-1 text-slate-500">You haven't written any reviews yet.</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {myReviews.map(review => (
+                      <li key={review._id} className="p-6 hover:bg-slate-50 transition">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-slate-900 text-lg">
+                            {review.hallId?.name || 'A Venue'}
+                          </h4>
+                          <div className="flex text-yellow-400">
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-current" />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-slate-600 mt-2">{review.comment}</p>
+                        <span className="text-xs text-slate-400 mt-3 block">
+                          Reviewed on {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
 
         </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import HallCard from '../components/HallCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Users, IndianRupee } from 'lucide-react';
 
 import { mockHalls } from '../utils/mockData';
 
@@ -112,9 +112,49 @@ const Home = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredHalls.map(hall => (
-              <HallCard key={hall._id} hall={hall} />
-            ))}
+            {filteredHalls.map(hall => {
+              const fallbackImage = 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+              const validImages = hall.images?.filter(Boolean) || [];
+              const thumbnail = validImages.length > 0 ? validImages[0] : fallbackImage;
+              const getImageUrl = (url) => url.startsWith('/uploads') ? `http://localhost:5000${url}` : url;
+              const imgUrl = getImageUrl(thumbnail);
+              
+              return (
+                <Link to={`/halls/${hall._id}`} key={hall._id} className="group relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 border border-slate-100">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden">
+                    <img 
+                      src={imgUrl} 
+                      alt={hall.name} 
+                      onError={(e) => { e.target.onerror = null; e.target.src = fallbackImage; }}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-5 flex flex-col flex-grow bg-white">
+                    <h3 className="text-xl font-bold text-slate-900 mb-1 truncate">{hall.name}</h3>
+                    <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium mb-4">
+                      <MapPin size={15} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{hall.location}</span>
+                    </div>
+                    <div className="mt-auto flex justify-between items-center border-t border-slate-100 pt-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Price / Day</span>
+                        <div className="flex items-center text-rose-600 font-bold text-lg">
+                          <IndianRupee size={16} className="mr-0.5" />
+                          <span>{hall.price.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Capacity</span>
+                        <div className="flex items-center text-slate-700 font-medium bg-slate-50 px-2.5 py-1 rounded-lg text-sm border border-slate-100">
+                          <Users size={14} className="mr-1.5 text-rose-500" />
+                          {hall.capacity} pax
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

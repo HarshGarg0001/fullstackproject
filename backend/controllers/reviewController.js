@@ -52,7 +52,18 @@ const getHallReviews = asyncHandler(async (req, res) => {
   res.json(reviews);
 });
 
+// @desc    Get reviews by user
+// @route   GET /api/reviews/user
+// @access  Private
+const getUserReviews = asyncHandler(async (req, res) => {
+  const reviews = await Review.find({ userId: req.user._id })
+    .populate('hallId', 'name images')
+    .sort('-createdAt');
+  res.json(reviews);
+});
+
 module.exports = {
   addReview,
-  getHallReviews
+  getHallReviews,
+  getUserReviews
 };

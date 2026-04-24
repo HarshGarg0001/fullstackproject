@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { MapPin, Users, IndianRupee, Calendar, Image as ImageIcon, Star } from 'lucide-react';
+import { MapPin, Users, IndianRupee, Calendar, Image as ImageIcon, Star, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { mockHalls, mockReviews } from '../utils/mockData';
 
@@ -25,6 +25,9 @@ const HallDetails = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [reviewMessage, setReviewMessage] = useState({ type: '', text: '' });
+
+  // Photo modal state
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -143,21 +146,56 @@ const HallDetails = () => {
     return url.startsWith('/uploads') ? `http://localhost:5000${url}` : url;
   };
 
+  const validImages = hall.images?.filter(Boolean) || [];
+  const displayImages = validImages.length > 0 ? validImages : [defaultImage];
+
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
-      {/* Header Banner */}
-      <div className="bg-slate-900 h-64 md:h-96 relative">
-        <img 
-          src={hall.images && hall.images.length > 0 ? getImageUrl(hall.images[0]) : defaultImage} 
-          alt={hall.name}
-          className="w-full h-full object-cover opacity-50"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white text-center px-4 drop-shadow-lg">{hall.name}</h1>
-        </div>
+    <div className="bg-white min-h-screen pb-20 font-sans">
+      
+      {/* Photo Gallery Grid (Airbnb Style) */}
+      <div className="max-w-7xl mx-auto px-4 pt-8 pb-8">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 tracking-tight">{hall.name}</h1>
+        
+        {displayImages.length === 1 ? (
+          <div className="w-full h-[40vh] md:h-[60vh] rounded-3xl overflow-hidden cursor-pointer relative group shadow-sm border border-slate-100" onClick={() => setSelectedImageIndex(0)}>
+            <img 
+              src={getImageUrl(displayImages[0])} 
+              alt={hall.name}
+              onError={(e) => { e.target.onerror = null; e.target.src = defaultImage; }}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-3 h-[40vh] md:h-[60vh] rounded-3xl overflow-hidden relative shadow-sm border border-slate-100">
+            <div className="md:col-span-2 md:row-span-2 relative group cursor-pointer overflow-hidden h-full hidden md:block" onClick={() => setSelectedImageIndex(0)}>
+              <img src={getImageUrl(displayImages[0])} alt="Main" onError={(e) => { e.target.onerror = null; e.target.src = defaultImage; }} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+            </div>
+            
+            {displayImages.slice(1, 5).map((img, idx) => (
+              <div key={idx} className="relative group cursor-pointer overflow-hidden hidden md:block h-full" onClick={() => setSelectedImageIndex(idx + 1)}>
+                <img src={getImageUrl(img)} alt={`Gallery ${idx}`} onError={(e) => { e.target.onerror = null; e.target.src = defaultImage; }} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+              </div>
+            ))}
+
+            {/* Mobile View - just the first image */}
+            <div className="col-span-1 row-span-1 relative group cursor-pointer overflow-hidden h-full md:hidden" onClick={() => setSelectedImageIndex(0)}>
+              <img src={getImageUrl(displayImages[0])} alt="Main" onError={(e) => { e.target.onerror = null; e.target.src = defaultImage; }} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            
+            <button 
+              onClick={() => setSelectedImageIndex(0)}
+              className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-sm px-5 py-2.5 rounded-xl shadow-lg font-bold text-slate-900 text-sm hover:bg-white hover:scale-105 transition-all flex items-center gap-2 border border-slate-200"
+            >
+              <ImageIcon size={16} /> Show all photos
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 -mt-10 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Main Content */}
@@ -184,25 +222,7 @@ const HallDetails = () => {
               </p>
             </div>
 
-            {/* Image Gallery */}
-            {hall.images && hall.images.length > 1 && (
-              <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-100">
-                <div className="flex items-center gap-2 mb-6">
-                  <ImageIcon className="text-rose-500" />
-                  <h3 className="text-2xl font-bold text-slate-800">Gallery</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {hall.images.map((img, idx) => (
-                    <img 
-                      key={idx} 
-                      src={getImageUrl(img)} 
-                      alt={`${hall.name} ${idx+1}`} 
-                      className="w-full h-40 object-cover rounded-xl shadow-sm hover:scale-[1.02] transition-transform"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Image Gallery removed, now placed at the top */}
 
             {/* Reviews Section */}
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-100">
@@ -324,6 +344,55 @@ const HallDetails = () => {
           
         </div>
       </div>
+
+      {/* Full-Screen Image Modal */}
+      {selectedImageIndex !== null && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4">
+          <button 
+            onClick={() => setSelectedImageIndex(null)}
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors z-50"
+          >
+            <X size={32} />
+          </button>
+          
+          {displayImages.length > 1 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImageIndex(prev => prev === 0 ? displayImages.length - 1 : prev - 1);
+              }}
+              className="absolute left-4 md:left-8 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors bg-black/20 z-50"
+            >
+              <ChevronLeft size={40} />
+            </button>
+          )}
+
+          <div className="w-full h-full max-w-6xl flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={getImageUrl(displayImages[selectedImageIndex])} 
+              alt="Preview" 
+              onError={(e) => { e.target.onerror = null; e.target.src = defaultImage; }}
+              className="max-w-full max-h-[85vh] object-contain select-none"
+            />
+          </div>
+
+          {displayImages.length > 1 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImageIndex(prev => prev === displayImages.length - 1 ? 0 : prev + 1);
+              }}
+              className="absolute right-4 md:right-8 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors bg-black/20 z-50"
+            >
+              <ChevronRight size={40} />
+            </button>
+          )}
+          
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/90 font-medium tracking-wide bg-black/50 px-4 py-1.5 rounded-full text-sm">
+            {selectedImageIndex + 1} / {displayImages.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
